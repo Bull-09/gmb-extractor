@@ -2,11 +2,7 @@ import LoginForm from "./LoginForm";
 
 export const dynamic = "force-dynamic";
 
-export default function LoginPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ error?: string }>;
-}) {
+export default function LoginPage() {
   return (
     <main className="login-shell">
       <section className="login-card">

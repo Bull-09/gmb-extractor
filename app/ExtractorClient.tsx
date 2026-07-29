@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { City, Country, State } from "country-state-city";
 import { createSupabaseBrowserClient } from "../lib/supabase/client";
 
 type Place = {
@@ -18,40 +19,6 @@ type Place = {
   longitude?: number;
 };
 
-const demoPlaces: Place[] = [
-  {
-    id: "demo-1",
-    name: "Smile Craft Dental Studio",
-    category: "Dental clinic",
-    address: "Linking Road, Bandra West, Mumbai, Maharashtra",
-    phone: "+91 22 2640 1188",
-    website: "smilecraft.example",
-    rating: 4.8,
-    reviews: 286,
-    status: "OPERATIONAL",
-  },
-  {
-    id: "demo-2",
-    name: "Pearl Dental Care",
-    category: "Dentist",
-    address: "SV Road, Andheri West, Mumbai, Maharashtra",
-    phone: "+91 22 4012 7766",
-    website: "pearldental.example",
-    rating: 4.6,
-    reviews: 194,
-    status: "OPERATIONAL",
-  },
-  {
-    id: "demo-3",
-    name: "The Dental Lounge",
-    category: "Cosmetic dentist",
-    address: "Palm Beach Road, Vashi, Navi Mumbai, Maharashtra",
-    rating: 4.7,
-    reviews: 121,
-    status: "OPERATIONAL",
-  },
-];
-
 const fieldOptions = [
   { key: "phone", label: "Phone", tier: "Contact" },
   { key: "website", label: "Website", tier: "Contact" },
@@ -68,8 +35,10 @@ type ExtractorClientProps = {
 };
 
 export default function ExtractorClient({ user, signOutPath }: ExtractorClientProps) {
-  const [keyword, setKeyword] = useState("Dentists");
-  const [location, setLocation] = useState("Mumbai, Maharashtra");
+  const [keyword, setKeyword] = useState("");
+  const [countryCode, setCountryCode] = useState("IN");
+  const [stateCode, setStateCode] = useState("MH");
+  const [cityName, setCityName] = useState("Mumbai");
   const [limit, setLimit] = useState(20);
   const [selectedFields, setSelectedFields] = useState<string[]>([
     "phone",
@@ -79,7 +48,20 @@ export default function ExtractorClient({ user, signOutPath }: ExtractorClientPr
   const [results, setResults] = useState<Place[]>([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("Ready to search");
-  const [demo, setDemo] = useState(false);
+  const countries = useMemo(() => Country.getAllCountries(), []);
+  const states = useMemo(
+    () => State.getStatesOfCountry(countryCode),
+    [countryCode],
+  );
+  const cities = useMemo(
+    () => City.getCitiesOfState(countryCode, stateCode),
+    [countryCode, stateCode],
+  );
+  const countryName =
+    countries.find((country) => country.isoCode === countryCode)?.name || "";
+  const stateName =
+    states.find((state) => state.isoCode === stateCode)?.name || "";
+  const location = [cityName, stateName, countryName].filter(Boolean).join(", ");
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
@@ -102,8 +84,11 @@ export default function ExtractorClient({ user, signOutPath }: ExtractorClientPr
     const cached = localStorage.getItem("mapmint-results");
     if (cached) {
       try {
-        setResults(JSON.parse(cached));
-        setMessage("Saved results restored");
+        const savedResults = JSON.parse(cached) as Place[];
+        queueMicrotask(() => {
+          setResults(savedResults);
+          setMessage("Saved results restored");
+        });
       } catch {
         localStorage.removeItem("mapmint-results");
       }
@@ -141,18 +126,19 @@ export default function ExtractorClient({ user, signOutPath }: ExtractorClientPr
       const data = await response.json();
       if (!response.ok) {
         if (data.code === "API_KEY_MISSING") {
-          setResults(demoPlaces.slice(0, Math.min(limit, demoPlaces.length)));
-          setDemo(true);
-          setMessage("Demo results shown — connect your Google key for live data");
+          setResults([]);
+          setMessage(
+            `Live Google data is not connected yet. No fake results were shown for “${keyword}”.`,
+          );
           return;
         }
         throw new Error(data.error || "The search could not be completed.");
       }
-      const merged = Array.from(
-        new Map([...results, ...data.places].map((place) => [place.id, place])).values(),
+      const currentSearchResults = Array.from(
+        new Map(data.places.map((place: Place) => [place.id, place])).values(),
       ) as Place[];
-      setResults(merged);
-      localStorage.setItem("mapmint-results", JSON.stringify(merged));
+      setResults(currentSearchResults);
+      localStorage.setItem("mapmint-results", JSON.stringify(currentSearchResults));
       const supabase = createSupabaseBrowserClient();
       if (supabase) {
         const { data: auth } = await supabase.auth.getUser();
@@ -162,12 +148,11 @@ export default function ExtractorClient({ user, signOutPath }: ExtractorClientPr
             keyword,
             location,
             result_count: data.places.length,
-            results: merged,
+            results: currentSearchResults,
           });
         }
       }
-      setDemo(false);
-      setMessage(`${data.places.length} businesses found · ${merged.length} unique saved`);
+      setMessage(`${data.places.length} businesses found · ${currentSearchResults.length} unique saved`);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Something went wrong.");
     } finally {
@@ -220,7 +205,6 @@ export default function ExtractorClient({ user, signOutPath }: ExtractorClientPr
 
   const clearResults = () => {
     setResults([]);
-    setDemo(false);
     localStorage.removeItem("mapmint-results");
     setMessage("Results cleared");
   };
@@ -281,17 +265,60 @@ export default function ExtractorClient({ user, signOutPath }: ExtractorClientPr
             />
           </label>
 
-          <div className="two-col">
+          <div className="location-grid">
             <label>
-              Where?
-              <input
-                value={location}
-                onChange={(event) => setLocation(event.target.value)}
-                placeholder="City, state or postcode"
+              Country
+              <select
+                value={countryCode}
+                onChange={(event) => {
+                  const nextCountry = event.target.value;
+                  const nextStates = State.getStatesOfCountry(nextCountry);
+                  setCountryCode(nextCountry);
+                  setStateCode(nextStates[0]?.isoCode || "");
+                  setCityName("");
+                }}
                 required
-                data-testid="location"
-              />
+                data-testid="country"
+              >
+                {countries.map((country) => (
+                  <option key={country.isoCode} value={country.isoCode}>{country.name}</option>
+                ))}
+              </select>
             </label>
+            <label>
+              State / province
+              <select
+                value={stateCode}
+                onChange={(event) => {
+                  setStateCode(event.target.value);
+                  setCityName("");
+                }}
+                disabled={!states.length}
+                data-testid="state"
+              >
+                {!states.length && <option value="">No states listed</option>}
+                {states.map((state) => (
+                  <option key={state.isoCode} value={state.isoCode}>{state.name}</option>
+                ))}
+              </select>
+            </label>
+            <label>
+              City
+              <select
+                value={cityName}
+                onChange={(event) => setCityName(event.target.value)}
+                required={cities.length > 0}
+                disabled={!cities.length}
+                data-testid="city"
+              >
+                <option value="">{cities.length ? "Select a city" : "No cities listed"}</option>
+                {cities.map((city) => (
+                  <option key={`${city.name}-${city.latitude}-${city.longitude}`} value={city.name}>{city.name}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <div className="two-col">
             <label>
               Results this run
               <select
@@ -370,7 +397,7 @@ export default function ExtractorClient({ user, signOutPath }: ExtractorClientPr
           <div>
             <span className="step">03</span>
             <h2>Your lead list</h2>
-            <p>{message}{demo ? " · sample data only" : ""}</p>
+            <p>{message}</p>
           </div>
           <div className="result-actions">
             <button className="secondary" onClick={clearResults} disabled={!uniqueResults.length}>Clear</button>

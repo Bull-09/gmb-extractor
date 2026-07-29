@@ -192,7 +192,7 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 .card-heading h2, .results-heading h2 { margin: 0; font-family: Georgia, serif; font-size: 27px; font-weight: 500; letter-spacing: -.7px; }
 .step { color: var(--orange); }
 .guard { color: var(--green); background: #e8f0e5; padding: 8px 10px; border-radius: 99px; white-space: nowrap; }
-.search-card > label, .two-col label { display: grid; gap: 9px; font-size: 12px; font-weight: 900; margin-top: 29px; }
+.search-card > label, .two-col label, .location-grid label { display: grid; gap: 9px; font-size: 12px; font-weight: 900; margin-top: 29px; }
 input, select {
   width: 100%;
   border: 1px solid #cfd5ca;
@@ -204,6 +204,7 @@ input, select {
 }
 input:focus, select:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(31,107,69,.1); }
 .two-col { display: grid; grid-template-columns: 1.3fr .7fr; gap: 14px; }
+.location-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
 fieldset { border: 0; padding: 0; margin: 30px 0 0; }
 legend { font-size: 12px; font-weight: 900; margin-bottom: 12px; }
 legend span { color: var(--muted); font-weight: 400; margin-left: 7px; }
@@ -310,7 +311,7 @@ footer { border-top: 1px solid var(--line); padding: 25px max(30px, calc((100vw 
   .hero { padding-inline: 20px; }
   .hero h1 { font-size: 53px; }
   .workspace { padding-inline: 20px; }
-  .two-col, aside { grid-template-columns: 1fr; }
+  .two-col, .location-grid, aside { grid-template-columns: 1fr; }
   .card-heading { align-items: center; }
   .guard { display: none; }
   .estimate { align-items: flex-start; }
