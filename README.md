@@ -1,8 +1,8 @@
-# MapMint
+# MapMint by Nivaro
 
-A free-only Google Business lead extractor built around the official Google
-Places API. MapMint runs searches, removes duplicate Place IDs, caches results
-on the user's device, and exports clean CSV files.
+A Nivaro internal free-only Google Business lead extractor built around the
+official Google Places API. MapMint runs searches, removes duplicate Place IDs,
+caches results on the user's device, and exports clean CSV files.
 
 ## Safety model
 

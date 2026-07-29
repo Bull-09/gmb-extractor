@@ -7,9 +7,9 @@ export async function generateMetadata(): Promise<Metadata> {
   const host = requestHeaders.get("x-forwarded-host") || requestHeaders.get("host");
   const protocol = requestHeaders.get("x-forwarded-proto") || "https";
   const baseUrl = host ? `${protocol}://${host}` : "http://localhost:3000";
-  const title = "MapMint — Free-only Google Business Extractor";
+  const title = "MapMint by Nivaro — Free-only Google Business Extractor";
   const description =
-    "Build clean, export-ready local business lead lists without surprise API bills.";
+    "Nivaro's internal tool for clean, export-ready local business lead lists without surprise API bills.";
 
   return {
     title,

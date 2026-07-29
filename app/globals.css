@@ -48,16 +48,38 @@ button:disabled { cursor: not-allowed; opacity: .45; }
   font-weight: 900;
   letter-spacing: -.6px;
 }
-.brand-mark {
-  width: 34px;
-  height: 34px;
+.nivaro-icon {
+  width: 46px;
+  height: 36px;
+  display: block;
+  position: relative;
+  overflow: hidden;
+  border-right: 1px solid var(--line);
+  padding-right: 10px;
+}
+.nivaro-icon img {
+  position: absolute;
+  width: 150px;
+  height: 45px;
+  max-width: none;
+  left: -57px;
+  top: -3px;
+}
+.product-lockup {
   display: grid;
-  place-items: center;
-  border-radius: 9px 9px 9px 2px;
-  color: var(--lime);
-  background: var(--green);
+  line-height: 1;
+}
+.product-lockup b {
   font-family: Georgia, serif;
-  font-style: italic;
+  font-size: 21px;
+  letter-spacing: -.7px;
+}
+.product-lockup small {
+  color: var(--muted);
+  font-size: 7px;
+  letter-spacing: 1.5px;
+  margin-top: 5px;
+  font-weight: 900;
 }
 .beta, .eyebrow, .step, .guard, .live-dot, .tip-card > span {
   font-size: 10px;
@@ -201,7 +223,10 @@ td b, td span { display: block; }
 td span { color: var(--muted); font-size: 10px; margin-top: 5px; max-width: 370px; }
 .rating { color: #ad7100; }
 .status { display: inline-block; color: var(--green); background: #e6efe2; border-radius: 99px; padding: 5px 8px; margin: 0; font-weight: 900; }
-footer { border-top: 1px solid var(--line); padding: 25px max(30px, calc((100vw - 1120px) / 2)); display: flex; justify-content: space-between; color: var(--muted); font-size: 10px; }
+footer { border-top: 1px solid var(--line); padding: 25px max(30px, calc((100vw - 1120px) / 2)); display: flex; align-items: center; justify-content: space-between; color: var(--muted); font-size: 10px; }
+.footer-brand { display: flex; align-items: center; gap: 10px; color: var(--ink); font-weight: 900; }
+.footer-brand .nivaro-icon { width: 35px; height: 26px; border: 0; padding: 0; }
+.footer-brand .nivaro-icon img { width: 108px; height: 32px; left: -41px; top: -2px; }
 
 @media (max-width: 800px) {
   .hero { padding-top: 55px; }

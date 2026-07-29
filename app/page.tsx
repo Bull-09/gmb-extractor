@@ -189,10 +189,13 @@ export default function Home() {
   return (
     <main>
       <header className="topbar">
-        <a className="brand" href="#" aria-label="MapMint home">
-          <span className="brand-mark" aria-hidden="true">M</span>
-          <span>MapMint</span>
-          <span className="beta">BETA</span>
+        <a className="brand" href="#" aria-label="MapMint by Nivaro home">
+          <span className="nivaro-icon" aria-hidden="true"><img src="/nivaro-logo.png" alt="" /></span>
+          <span className="product-lockup">
+            <b>MapMint</b>
+            <small>BY NIVARO</small>
+          </span>
+          <span className="beta">INTERNAL</span>
         </a>
         <div className="top-actions">
           <span className="free-pill"><span /> FREE-ONLY MODE</span>
@@ -201,11 +204,11 @@ export default function Home() {
       </header>
 
       <section className="hero">
-        <div className="eyebrow">GOOGLE BUSINESS DATA, MINUS THE BILL</div>
+        <div className="eyebrow">A NIVARO INTERNAL TOOL · GOOGLE BUSINESS DATA, MINUS THE BILL</div>
         <h1>Find the businesses.<br /><em>Keep the budget.</em></h1>
         <p>
           Build clean local lead lists from Google Places. Duplicate-safe,
-          export-ready, and designed to stop before paid usage.
+          export-ready, and designed by Nivaro to stop before paid usage.
         </p>
       </section>
 
@@ -359,8 +362,8 @@ export default function Home() {
       </section>
 
       <footer>
-        <span>MapMint · Free-only Google business extraction</span>
-        <span>No subscriptions. No surprise bills.</span>
+        <span className="footer-brand"><span className="nivaro-icon" aria-hidden="true"><img src="/nivaro-logo.png" alt="" /></span> MapMint by Nivaro</span>
+        <span>Internal agency tool · No subscriptions. No surprise bills.</span>
       </footer>
     </main>
   );
