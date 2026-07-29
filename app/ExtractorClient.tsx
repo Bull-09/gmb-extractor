@@ -10,6 +10,7 @@ type Place = {
   category: string;
   address: string;
   phone?: string;
+  email?: string;
   website?: string;
   rating?: number;
   reviews?: number;
@@ -21,6 +22,7 @@ type Place = {
 
 const fieldOptions = [
   { key: "phone", label: "Phone", tier: "Contact" },
+  { key: "email", label: "Email", tier: "Website scan" },
   { key: "website", label: "Website", tier: "Contact" },
   { key: "rating", label: "Rating", tier: "Contact" },
   { key: "hours", label: "Hours", tier: "Contact" },
@@ -44,11 +46,13 @@ export default function ExtractorClient({ user, signOutPath }: ExtractorClientPr
   const [limit, setLimit] = useState(20);
   const [selectedFields, setSelectedFields] = useState<string[]>([
     "phone",
+    "email",
     "website",
     "rating",
   ]);
   const [results, setResults] = useState<Place[]>([]);
   const [loading, setLoading] = useState(false);
+  const [enriching, setEnriching] = useState(false);
   const [message, setMessage] = useState("Ready to search");
   const countries = useMemo(
     () => Country.getAllCountries().sort((a, b) => a.name.localeCompare(b.name)),
@@ -198,6 +202,7 @@ export default function ExtractorClient({ user, signOutPath }: ExtractorClientPr
       "Category",
       "Address",
       "Phone",
+      "Email",
       "Website",
       "Rating",
       "Review count",
@@ -212,6 +217,7 @@ export default function ExtractorClient({ user, signOutPath }: ExtractorClientPr
       place.category,
       place.address,
       place.phone || "",
+      place.email || "",
       place.website || "",
       place.rating ?? "",
       place.reviews ?? "",
@@ -233,6 +239,45 @@ export default function ExtractorClient({ user, signOutPath }: ExtractorClientPr
     link.download = `mapmint-${keyword.toLowerCase().replaceAll(" ", "-")}.csv`;
     link.click();
     URL.revokeObjectURL(link.href);
+  };
+
+  const enrichContacts = async () => {
+    if (!uniqueResults.length) return;
+    setEnriching(true);
+    setMessage("Checking public business websites for contact details…");
+    try {
+      const response = await fetch("/api/places/enrich", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          leads: uniqueResults.map(({ id, website, phone, email }) => ({
+            id,
+            website,
+            phone,
+            email,
+          })),
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Contact enrichment failed.");
+      const additions = new Map(
+        (data.leads as Place[]).map((lead) => [lead.id, lead]),
+      );
+      const enriched = uniqueResults.map((place) => ({
+        ...place,
+        ...additions.get(place.id),
+      }));
+      setResults(enriched);
+      localStorage.setItem("mapmint-results", JSON.stringify(enriched));
+      const contactCount = enriched.filter(
+        (place) => place.phone || place.email || place.website,
+      ).length;
+      setMessage(`Contact check complete · ${contactCount} of ${enriched.length} leads have contact details`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Contact enrichment failed.");
+    } finally {
+      setEnriching(false);
+    }
   };
 
   const clearResults = () => {
@@ -452,6 +497,9 @@ export default function ExtractorClient({ user, signOutPath }: ExtractorClientPr
           </div>
           <div className="result-actions">
             <button className="secondary" onClick={clearResults} disabled={!uniqueResults.length}>Clear</button>
+            <button className="secondary" onClick={enrichContacts} disabled={!uniqueResults.length || enriching}>
+              {enriching ? "Finding contacts…" : "Find contacts"}
+            </button>
             <button className="export" onClick={exportCsv} disabled={!uniqueResults.length}>
               Export CSV ↓
             </button>
@@ -470,7 +518,11 @@ export default function ExtractorClient({ user, signOutPath }: ExtractorClientPr
                 {uniqueResults.map((place) => (
                   <tr key={place.id}>
                     <td><b>{place.name}</b><span>{place.category} · {place.address}</span></td>
-                    <td><b>{place.phone || "Not requested"}</b><span>{place.website || "No website listed"}</span></td>
+                    <td>
+                      <b>{place.phone || "No phone found"}</b>
+                      <span>{place.email || "No email found"}</span>
+                      <span>{place.website || "No website listed"}</span>
+                    </td>
                     <td><b className="rating">★ {place.rating ?? "—"}</b><span>{place.reviews ? `${place.reviews} reviews` : "No count"}</span></td>
                     <td><span className="status">{place.status === "OPERATIONAL" ? "Open" : place.status || "Unknown"}</span></td>
                   </tr>
