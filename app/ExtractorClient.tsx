@@ -125,13 +125,6 @@ export default function ExtractorClient({ user, signOutPath }: ExtractorClientPr
       });
       const data = await response.json();
       if (!response.ok) {
-        if (data.code === "API_KEY_MISSING") {
-          setResults([]);
-          setMessage(
-            `Live Google data is not connected yet. No fake results were shown for “${keyword}”.`,
-          );
-          return;
-        }
         throw new Error(data.error || "The search could not be completed.");
       }
       const currentSearchResults = Array.from(
@@ -152,7 +145,11 @@ export default function ExtractorClient({ user, signOutPath }: ExtractorClientPr
           });
         }
       }
-      setMessage(`${data.places.length} businesses found · ${currentSearchResults.length} unique saved`);
+      const sourceLabel =
+        data.source === "openstreetmap" ? "OpenStreetMap" : "Google Places";
+      setMessage(
+        `${data.places.length} businesses found from ${sourceLabel} · ${currentSearchResults.length} unique saved`,
+      );
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Something went wrong.");
     } finally {
@@ -239,8 +236,8 @@ export default function ExtractorClient({ user, signOutPath }: ExtractorClientPr
         <div className="eyebrow">A NIVARO INTERNAL TOOL · GOOGLE BUSINESS DATA, MINUS THE BILL</div>
         <h1>Find the businesses.<br /><em>Keep the budget.</em></h1>
         <p>
-          Welcome, {user.displayName}. Build clean local lead lists from Google Places. Duplicate-safe,
-          export-ready, and designed by Nivaro to stop before paid usage.
+          Welcome, {user.displayName}. Build clean local lead lists from open worldwide business data.
+          Duplicate-safe, export-ready, and designed by Nivaro with no paid API requirement.
         </p>
       </section>
 
@@ -438,7 +435,7 @@ export default function ExtractorClient({ user, signOutPath }: ExtractorClientPr
 
       <footer>
         <span className="footer-brand"><span className="nivaro-icon" aria-hidden="true"><img src="/nivaro-logo.png" alt="" /></span> MapMint by Nivaro</span>
-        <span>Internal agency tool · No subscriptions. No surprise bills.</span>
+        <span>Business data © OpenStreetMap contributors · ODbL · No paid API</span>
       </footer>
     </main>
   );
