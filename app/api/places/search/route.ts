@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getChatGPTUser } from "../../../chatgpt-auth";
+import { getAppUser } from "../../../internal-auth";
 
 type GooglePlace = {
   id: string;
@@ -19,7 +19,7 @@ type GooglePlace = {
 const SEARCH_URL = "https://places.googleapis.com/v1/places:searchText";
 
 export async function POST(request: NextRequest) {
-  const user = await getChatGPTUser();
+  const user = await getAppUser();
   if (!user) {
     return NextResponse.json(
       { error: "Sign in is required to use the extractor." },

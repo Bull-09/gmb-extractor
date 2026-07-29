@@ -1,15 +1,18 @@
-import { chatGPTSignOutPath, requireChatGPTUser } from "./chatgpt-auth";
+import { requireAppUser } from "./internal-auth";
 import ExtractorClient from "./ExtractorClient";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const user = await requireChatGPTUser("/");
+  const user = await requireAppUser();
+  const platformUser = user.email !== "Internal access";
 
   return (
     <ExtractorClient
       user={{ displayName: user.displayName, email: user.email }}
-      signOutPath={chatGPTSignOutPath("/")}
+      signOutPath={platformUser
+        ? "/signout-with-chatgpt?return_to=%2F"
+        : "/api/auth/logout"}
     />
   );
 }
