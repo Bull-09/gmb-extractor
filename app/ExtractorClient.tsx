@@ -37,7 +37,9 @@ type ExtractorClientProps = {
 export default function ExtractorClient({ user, signOutPath }: ExtractorClientProps) {
   const [keyword, setKeyword] = useState("");
   const [countryCode, setCountryCode] = useState("IN");
+  const [countryQuery, setCountryQuery] = useState("India");
   const [stateCode, setStateCode] = useState("MH");
+  const [stateQuery, setStateQuery] = useState("Maharashtra");
   const [cityName, setCityName] = useState("Mumbai");
   const [limit, setLimit] = useState(20);
   const [selectedFields, setSelectedFields] = useState<string[]>([
@@ -48,20 +50,19 @@ export default function ExtractorClient({ user, signOutPath }: ExtractorClientPr
   const [results, setResults] = useState<Place[]>([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("Ready to search");
-  const countries = useMemo(() => Country.getAllCountries(), []);
+  const countries = useMemo(
+    () => Country.getAllCountries().sort((a, b) => a.name.localeCompare(b.name)),
+    [],
+  );
   const states = useMemo(
-    () => State.getStatesOfCountry(countryCode),
+    () => State.getStatesOfCountry(countryCode).sort((a, b) => a.name.localeCompare(b.name)),
     [countryCode],
   );
   const cities = useMemo(
-    () => City.getCitiesOfState(countryCode, stateCode),
+    () => City.getCitiesOfState(countryCode, stateCode).sort((a, b) => a.name.localeCompare(b.name)),
     [countryCode, stateCode],
   );
-  const countryName =
-    countries.find((country) => country.isoCode === countryCode)?.name || "";
-  const stateName =
-    states.find((state) => state.isoCode === stateCode)?.name || "";
-  const location = [cityName, stateName, countryName].filter(Boolean).join(", ");
+  const location = [cityName, stateQuery, countryQuery].filter(Boolean).join(", ");
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
@@ -106,6 +107,40 @@ export default function ExtractorClient({ user, signOutPath }: ExtractorClientPr
         ? fields.filter((field) => field !== key)
         : [...fields, key],
     );
+  };
+
+  const startVoiceInput = () => {
+    type RecognitionResult = {
+      results: ArrayLike<{ 0: { transcript: string } }>;
+    };
+    type Recognition = {
+      lang: string;
+      interimResults: boolean;
+      onresult: (event: RecognitionResult) => void;
+      onerror: () => void;
+      start: () => void;
+    };
+    type RecognitionConstructor = new () => Recognition;
+    const browserWindow = window as typeof window & {
+      SpeechRecognition?: RecognitionConstructor;
+      webkitSpeechRecognition?: RecognitionConstructor;
+    };
+    const RecognitionApi =
+      browserWindow.SpeechRecognition || browserWindow.webkitSpeechRecognition;
+    if (!RecognitionApi) {
+      setMessage("Voice typing is not supported in this browser. You can still type the business name.");
+      return;
+    }
+    const recognition = new RecognitionApi();
+    recognition.lang = navigator.language || "en-IN";
+    recognition.interimResults = false;
+    recognition.onresult = (event) => {
+      setKeyword(event.results[0]?.[0]?.transcript || "");
+      setMessage("Voice input added. Review it, then start the search.");
+    };
+    recognition.onerror = () => setMessage("I could not hear that. Please try the microphone again.");
+    recognition.start();
+    setMessage("Listening…");
   };
 
   const search = async (event: FormEvent) => {
@@ -253,66 +288,85 @@ export default function ExtractorClient({ user, signOutPath }: ExtractorClientPr
 
           <label>
             What kind of business?
-            <input
-              value={keyword}
-              onChange={(event) => setKeyword(event.target.value)}
-              placeholder="e.g. Dentists, cafés, plumbers"
-              required
-              data-testid="keyword"
-            />
+            <span className="voice-input">
+              <input
+                value={keyword}
+                onChange={(event) => setKeyword(event.target.value)}
+                placeholder="e.g. Dentists, cafés, plumbers"
+                required
+                data-testid="keyword"
+              />
+              <button type="button" onClick={startVoiceInput} aria-label="Speak business type" title="Speak business type">🎙</button>
+            </span>
           </label>
 
           <div className="location-grid">
             <label>
               Country
-              <select
-                value={countryCode}
+              <input
+                list="mapmint-countries"
+                value={countryQuery}
                 onChange={(event) => {
-                  const nextCountry = event.target.value;
-                  const nextStates = State.getStatesOfCountry(nextCountry);
-                  setCountryCode(nextCountry);
-                  setStateCode(nextStates[0]?.isoCode || "");
+                  const query = event.target.value;
+                  const match = countries.find(
+                    (country) => country.name.toLowerCase() === query.toLowerCase(),
+                  );
+                  setCountryQuery(query);
+                  setCountryCode(match?.isoCode || "");
+                  setStateCode("");
+                  setStateQuery("");
                   setCityName("");
                 }}
                 required
                 data-testid="country"
-              >
+                placeholder="Type a country"
+              />
+              <datalist id="mapmint-countries">
                 {countries.map((country) => (
-                  <option key={country.isoCode} value={country.isoCode}>{country.name}</option>
+                  <option key={country.isoCode} value={country.name} />
                 ))}
-              </select>
+              </datalist>
             </label>
             <label>
               State / province
-              <select
-                value={stateCode}
+              <input
+                list="mapmint-states"
+                value={stateQuery}
                 onChange={(event) => {
-                  setStateCode(event.target.value);
+                  const query = event.target.value;
+                  const match = states.find(
+                    (state) => state.name.toLowerCase() === query.toLowerCase(),
+                  );
+                  setStateQuery(query);
+                  setStateCode(match?.isoCode || "");
                   setCityName("");
                 }}
                 disabled={!states.length}
                 data-testid="state"
-              >
-                {!states.length && <option value="">No states listed</option>}
+                placeholder={states.length ? "Type a state" : "No states listed"}
+              />
+              <datalist id="mapmint-states">
                 {states.map((state) => (
-                  <option key={state.isoCode} value={state.isoCode}>{state.name}</option>
+                  <option key={state.isoCode} value={state.name} />
                 ))}
-              </select>
+              </datalist>
             </label>
             <label>
               City
-              <select
+              <input
+                list="mapmint-cities"
                 value={cityName}
                 onChange={(event) => setCityName(event.target.value)}
                 required={cities.length > 0}
                 disabled={!cities.length}
                 data-testid="city"
-              >
-                <option value="">{cities.length ? "Select a city" : "No cities listed"}</option>
+                placeholder={cities.length ? "Type a city" : "No cities listed"}
+              />
+              <datalist id="mapmint-cities">
                 {cities.map((city) => (
-                  <option key={`${city.name}-${city.latitude}-${city.longitude}`} value={city.name}>{city.name}</option>
+                  <option key={`${city.name}-${city.latitude}-${city.longitude}`} value={city.name} />
                 ))}
-              </select>
+              </datalist>
             </label>
           </div>
           <div className="two-col">

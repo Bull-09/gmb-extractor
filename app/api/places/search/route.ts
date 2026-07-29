@@ -18,7 +18,11 @@ type GooglePlace = {
 
 const SEARCH_URL = "https://places.googleapis.com/v1/places:searchText";
 const NOMINATIM_URL = "https://nominatim.openstreetmap.org/search";
-const OVERPASS_URL = "https://overpass-api.de/api/interpreter";
+const OVERPASS_URLS = [
+  "https://overpass-api.de/api/interpreter",
+  "https://overpass.private.coffee/api/interpreter",
+  "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+];
 const OSM_HEADERS = {
   "User-Agent": "MapMint-by-Nivaro/1.0 (https://mapmint-by-nivaro.vercel.app)",
   Referer: "https://mapmint-by-nivaro.vercel.app/",
@@ -98,20 +102,30 @@ async function searchOpenStreetMap(keyword: string, location: string, limit: num
 );
 out center tags ${limit};`;
 
-  const overpassResponse = await fetch(OVERPASS_URL, {
-    method: "POST",
-    headers: {
-      ...OSM_HEADERS,
-      "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-    },
-    body: new URLSearchParams({ data: query }),
-  });
-  if (!overpassResponse.ok) {
+  let overpassData: { elements?: OsmElement[] } | null = null;
+  for (const endpoint of OVERPASS_URLS) {
+    try {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          ...OSM_HEADERS,
+          "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+        },
+        body: new URLSearchParams({ data: query }),
+        signal: AbortSignal.timeout(22000),
+      });
+      if (!response.ok) continue;
+      overpassData = await response.json();
+      break;
+    } catch {
+      // Try the next community-operated global instance.
+    }
+  }
+  if (!overpassData) {
     throw new Error("The free OpenStreetMap service is busy. Please retry shortly.");
   }
 
-  const data = await overpassResponse.json();
-  const elements = (data.elements || []) as OsmElement[];
+  const elements = overpassData.elements || [];
   const places = elements
     .filter((element) => element.tags?.name || element.tags?.brand || element.tags?.operator)
     .slice(0, limit)
