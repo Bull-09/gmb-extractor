@@ -28,6 +28,16 @@ const fieldOptions = [
   { key: "hours", label: "Hours", tier: "Contact" },
 ];
 
+const loaderQuotes = [
+  "The best lead list is the one your team actually follows up.",
+  "Good data saves more time than another meeting.",
+  "Searching worldwide. Keeping the budget at zero.",
+  "Small lists with real contact details beat giant messy spreadsheets.",
+  "Every useful conversation begins with finding the right business.",
+  "Clean data in. Better outreach out.",
+  "MapMint is checking the map, removing duplicates, and minting your list.",
+];
+
 type ExtractorClientProps = {
   user: {
     displayName: string;
@@ -54,6 +64,7 @@ export default function ExtractorClient({ user, signOutPath }: ExtractorClientPr
   const [loading, setLoading] = useState(false);
   const [enriching, setEnriching] = useState(false);
   const [message, setMessage] = useState("Ready to search");
+  const [loaderQuoteIndex, setLoaderQuoteIndex] = useState(0);
   const countries = useMemo(
     () => Country.getAllCountries().sort((a, b) => a.name.localeCompare(b.name)),
     [],
@@ -99,6 +110,17 @@ export default function ExtractorClient({ user, signOutPath }: ExtractorClientPr
       }
     }
   }, []);
+
+  useEffect(() => {
+    if (!loading && !enriching) return;
+    const interval = window.setInterval(() => {
+      setLoaderQuoteIndex((index) => {
+        const next = Math.floor(Math.random() * loaderQuotes.length);
+        return next === index ? (index + 1) % loaderQuotes.length : next;
+      });
+    }, 2800);
+    return () => window.clearInterval(interval);
+  }, [loading, enriching]);
 
   const uniqueResults = useMemo(
     () => Array.from(new Map(results.map((place) => [place.id, place])).values()),
@@ -506,7 +528,30 @@ export default function ExtractorClient({ user, signOutPath }: ExtractorClientPr
           </div>
         </div>
 
-        {uniqueResults.length ? (
+        {loading || enriching ? (
+          <div className="mapmint-loader" role="status" aria-live="polite">
+            <div className="loader-orbit" aria-hidden="true">
+              <span className="loader-core">M</span>
+              <span className="orbit-dot dot-one" />
+              <span className="orbit-dot dot-two" />
+              <span className="orbit-dot dot-three" />
+            </div>
+            <span className="loader-kicker">
+              {enriching ? "CONTACT ENRICHMENT IN PROGRESS" : "WORLDWIDE SEARCH IN PROGRESS"}
+            </span>
+            <h3>{enriching ? "Finding the people behind the businesses." : "Minting your next lead list."}</h3>
+            <p className="loader-status">
+              {enriching
+                ? "Checking public websites for phones and email addresses…"
+                : `Searching ${location} for ${keyword || "businesses"}…`}
+            </p>
+            <blockquote key={loaderQuoteIndex}>
+              “{loaderQuotes[loaderQuoteIndex]}”
+            </blockquote>
+            <div className="loader-track" aria-hidden="true"><span /></div>
+            <small>Free community data can take a little longer. Please keep this page open.</small>
+          </div>
+        ) : uniqueResults.length ? (
           <div className="table-wrap">
             <table>
               <thead>

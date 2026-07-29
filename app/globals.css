@@ -305,7 +305,31 @@ footer { border-top: 1px solid var(--line); padding: 25px max(30px, calc((100vw 
   .workspace { grid-template-columns: 1fr; }
   aside { grid-template-columns: 1fr 1fr; }
   .field-grid { grid-template-columns: repeat(2, 1fr); }
-  .results-section { margin-inline: 20px; padding: 25px; }
+.results-section { margin-inline: 20px; padding: 25px; }
+}
+
+.mapmint-loader { min-height: 390px; margin-top: 28px; border: 1px solid var(--line); border-radius: 22px; background: radial-gradient(circle at 50% 20%, #edf8ef 0, #f8faf5 35%, white 74%); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 38px 24px; overflow: hidden; position: relative; }
+.loader-orbit { width: 104px; height: 104px; position: relative; display: grid; place-items: center; margin-bottom: 25px; }
+.loader-orbit::before, .loader-orbit::after { content: ""; position: absolute; inset: 5px; border: 1px solid rgba(39, 111, 62, .2); border-radius: 50%; animation: orbit-pulse 2.4s ease-in-out infinite; }
+.loader-orbit::after { inset: 18px; animation-delay: .6s; }
+.loader-core { width: 52px; height: 52px; display: grid; place-items: center; border-radius: 16px; background: var(--ink); color: white; font-family: Georgia, serif; font-size: 25px; font-style: italic; box-shadow: 0 14px 30px rgba(23, 50, 33, .2); }
+.orbit-dot { position: absolute; width: 10px; height: 10px; background: var(--green); border: 3px solid white; border-radius: 50%; box-shadow: 0 3px 8px rgba(23, 50, 33, .25); animation: orbit-spin 2.7s linear infinite; }
+.dot-one { transform-origin: 0 0; }
+.dot-two { animation-delay: -.9s; }
+.dot-three { animation-delay: -1.8s; }
+.loader-kicker { color: var(--green); font-size: 9px; font-weight: 950; letter-spacing: 1.7px; }
+.mapmint-loader h3 { margin: 10px 0 7px; font-family: Georgia, serif; font-size: clamp(25px, 4vw, 38px); letter-spacing: -1px; }
+.loader-status { margin: 0; color: var(--muted); font-size: 12px; }
+.mapmint-loader blockquote { min-height: 48px; max-width: 590px; margin: 28px 0 20px; color: #526056; font-family: Georgia, serif; font-size: 16px; font-style: italic; line-height: 1.5; animation: quote-arrive .5s ease both; }
+.loader-track { width: min(420px, 82%); height: 5px; border-radius: 99px; background: #e1e8df; overflow: hidden; }
+.loader-track span { display: block; width: 42%; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--green), #93bd66); animation: loader-slide 1.6s ease-in-out infinite; }
+.mapmint-loader small { margin-top: 13px; color: var(--muted); font-size: 9px; }
+@keyframes loader-slide { 0% { translate: -110% 0; } 100% { translate: 340% 0; } }
+@keyframes orbit-spin { from { transform: rotate(0deg) translateX(45px) rotate(0deg); } to { transform: rotate(360deg) translateX(45px) rotate(-360deg); } }
+@keyframes orbit-pulse { 0%, 100% { scale: .92; opacity: .35; } 50% { scale: 1.08; opacity: 1; } }
+@keyframes quote-arrive { from { opacity: 0; translate: 0 8px; } to { opacity: 1; translate: 0 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .loader-orbit::before, .loader-orbit::after, .orbit-dot, .loader-track span { animation-duration: 8s; }
 }
 @media (max-width: 560px) {
   .topbar { height: 66px; }
