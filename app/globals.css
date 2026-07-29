@@ -288,6 +288,11 @@ footer { border-top: 1px solid var(--line); padding: 25px max(30px, calc((100vw 
 .footer-brand { display: flex; align-items: center; gap: 10px; color: var(--ink); font-weight: 900; }
 .footer-brand .nivaro-icon { width: 35px; height: 26px; border: 0; padding: 0; }
 .footer-brand .nivaro-icon img { width: 108px; height: 32px; left: -41px; top: -2px; }
+.auth-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 24px; padding: 4px; border: 1px solid var(--line); border-radius: 12px; }
+.auth-tabs button { border: 0; background: transparent; color: var(--muted); padding: 9px; border-radius: 8px; font-weight: 800; cursor: pointer; }
+.auth-tabs button.active { background: var(--ink); color: white; }
+.forgot-link { width: 100%; margin-top: 13px; border: 0; background: transparent; color: var(--green); font-weight: 800; cursor: pointer; }
+.auth-message { margin-top: 14px; padding: 10px 12px; border-radius: 10px; background: #eef7f2; color: #17643a !important; }
 
 @media (max-width: 800px) {
   .hero { padding-top: 55px; }

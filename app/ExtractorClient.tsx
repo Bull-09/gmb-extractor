@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { createSupabaseBrowserClient } from "../lib/supabase/client";
 
 type Place = {
   id: string;
@@ -81,6 +82,23 @@ export default function ExtractorClient({ user, signOutPath }: ExtractorClientPr
   const [demo, setDemo] = useState(false);
 
   useEffect(() => {
+    const supabase = createSupabaseBrowserClient();
+    if (supabase) {
+      void (async () => {
+        const { data }: { data: { results: unknown } | null } = await supabase
+          .from("saved_searches")
+          .select("results")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+          if (Array.isArray(data?.results) && data.results.length) {
+            setResults(data.results as Place[]);
+            setMessage("Your latest saved search was restored");
+          }
+      })();
+      return;
+    }
+
     const cached = localStorage.getItem("mapmint-results");
     if (cached) {
       try {
@@ -135,6 +153,19 @@ export default function ExtractorClient({ user, signOutPath }: ExtractorClientPr
       ) as Place[];
       setResults(merged);
       localStorage.setItem("mapmint-results", JSON.stringify(merged));
+      const supabase = createSupabaseBrowserClient();
+      if (supabase) {
+        const { data: auth } = await supabase.auth.getUser();
+        if (auth.user) {
+          await supabase.from("saved_searches").insert({
+            user_id: auth.user.id,
+            keyword,
+            location,
+            result_count: data.places.length,
+            results: merged,
+          });
+        }
+      }
       setDemo(false);
       setMessage(`${data.places.length} businesses found · ${merged.length} unique saved`);
     } catch (error) {

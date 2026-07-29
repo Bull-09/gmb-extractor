@@ -1,3 +1,5 @@
+import LoginForm from "./LoginForm";
+
 export const dynamic = "force-dynamic";
 
 export default function LoginPage({
@@ -11,23 +13,11 @@ export default function LoginPage({
         <span className="login-logo" aria-hidden="true">
           <img src="/nivaro-logo.png" alt="" />
         </span>
-        <div className="eyebrow">NIVARO INTERNAL ACCESS</div>
+        <div className="eyebrow">MAPMINT BY NIVARO</div>
         <h1>Welcome to<br /><em>MapMint.</em></h1>
-        <p>Enter the team access key to continue to the business extractor.</p>
-        <form action="/api/auth/login" method="post">
-          <label>
-            Access key
-            <input
-              name="password"
-              type="password"
-              placeholder="Enter your access key"
-              autoComplete="current-password"
-              required
-            />
-          </label>
-          <button className="primary" type="submit">Sign in to MapMint <span>→</span></button>
-        </form>
-        <p className="login-note">Private tool by Nivaro · Authorized users only</p>
+        <p>Sign in or create your free account to start building business lists.</p>
+        <LoginForm />
+        <p className="login-note">A free-only lead tool by Nivaro</p>
       </section>
     </main>
   );

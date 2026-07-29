@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getChatGPTUser, type ChatGPTUser } from "./chatgpt-auth";
+import { createSupabaseServerClient } from "../lib/supabase/server";
 
 const COOKIE_NAME = "mapmint_session";
 
@@ -22,6 +23,18 @@ export async function expectedSessionToken() {
 export async function getAppUser(): Promise<ChatGPTUser | null> {
   const platformUser = await getChatGPTUser();
   if (platformUser) return platformUser;
+
+  const supabase = await createSupabaseServerClient();
+  if (supabase) {
+    const { data } = await supabase.auth.getUser();
+    if (data.user?.email) {
+      const name =
+        data.user.user_metadata?.full_name ||
+        data.user.email.split("@")[0] ||
+        "MapMint User";
+      return { displayName: name, email: data.user.email, fullName: name };
+    }
+  }
 
   const expected = await expectedSessionToken();
   const cookieStore = await cookies();

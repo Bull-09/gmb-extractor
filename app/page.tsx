@@ -5,7 +5,9 @@ export const dynamic = "force-dynamic";
 
 export default async function Home() {
   const user = await requireAppUser();
-  const platformUser = user.email !== "Internal access";
+  const platformUser =
+    user.email !== "Internal access" &&
+    !process.env.NEXT_PUBLIC_SUPABASE_URL;
 
   return (
     <ExtractorClient
