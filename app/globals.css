@@ -90,7 +90,29 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 .top-actions { display: flex; align-items: center; gap: 12px; }
 .free-pill { padding: 9px 13px; background: #e6eedf; border-radius: 99px; font-size: 11px; font-weight: 900; letter-spacing: .8px; }
 .free-pill span, .live-dot::before { display: inline-block; width: 7px; height: 7px; background: #35a65f; border-radius: 50%; margin-right: 7px; box-shadow: 0 0 0 4px rgba(53,166,95,.12); }
-.icon-button { border: 1px solid var(--line); background: var(--card); border-radius: 10px; width: 38px; height: 38px; }
+.account-menu {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border-left: 1px solid var(--line);
+  padding-left: 13px;
+}
+.avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--ink);
+  color: var(--lime);
+  font-family: Georgia, serif;
+  font-weight: 900;
+}
+.account-copy { display: grid; line-height: 1.15; max-width: 150px; }
+.account-copy b { font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.account-copy small { color: var(--muted); font-size: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 3px; }
+.sign-out { color: var(--green); text-decoration: none; font-size: 9px; font-weight: 900; padding: 8px; }
+.sign-out:hover { text-decoration: underline; }
 
 .hero {
   max-width: 1180px;
@@ -239,6 +261,8 @@ footer { border-top: 1px solid var(--line); padding: 25px max(30px, calc((100vw 
 @media (max-width: 560px) {
   .topbar { height: 66px; }
   .free-pill { display: none; }
+  .account-copy { display: none; }
+  .account-menu { gap: 3px; padding-left: 8px; }
   .hero { padding-inline: 20px; }
   .hero h1 { font-size: 53px; }
   .workspace { padding-inline: 20px; }

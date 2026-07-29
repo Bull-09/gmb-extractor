@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getChatGPTUser } from "../../../chatgpt-auth";
 
 type GooglePlace = {
   id: string;
@@ -18,6 +19,14 @@ type GooglePlace = {
 const SEARCH_URL = "https://places.googleapis.com/v1/places:searchText";
 
 export async function POST(request: NextRequest) {
+  const user = await getChatGPTUser();
+  if (!user) {
+    return NextResponse.json(
+      { error: "Sign in is required to use the extractor." },
+      { status: 401 },
+    );
+  }
+
   const apiKey = process.env.GOOGLE_PLACES_API_KEY;
   if (!apiKey) {
     return NextResponse.json(
