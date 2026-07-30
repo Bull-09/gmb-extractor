@@ -38,7 +38,7 @@ const loaderQuotes = [
   "Small lists with real contact details beat giant messy spreadsheets.",
   "Every useful conversation begins with finding the right business.",
   "Clean data in. Better outreach out.",
-  "MapMint is checking the map, removing duplicates, and minting your list.",
+  "MapMint is searching the web, checking public websites, and minting your list.",
 ];
 
 type ExtractorClientProps = {
@@ -172,10 +172,35 @@ export default function ExtractorClient({ user, signOutPath }: ExtractorClientPr
     setMessage("Listening…");
   };
 
+  const requestContactEnrichment = async (leads: Place[]) => {
+    const additions = new Map<string, Place>();
+    for (let index = 0; index < leads.length; index += 20) {
+      const response = await fetch("/api/places/enrich", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          leads: leads
+            .slice(index, index + 20)
+            .map(({ id, website, phone, email, contactSource }) => ({
+              id,
+              website,
+              phone,
+              email,
+              contactSource,
+            })),
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Contact enrichment failed.");
+      for (const lead of data.leads as Place[]) additions.set(lead.id, lead);
+    }
+    return leads.map((lead) => ({ ...lead, ...additions.get(lead.id) }));
+  };
+
   const search = async (event: FormEvent) => {
     event.preventDefault();
     setLoading(true);
-    setMessage("Searching Google Places…");
+    setMessage("Searching the open web for matching businesses…");
     try {
       const response = await fetch("/api/places/search", {
         method: "POST",
@@ -191,9 +216,15 @@ export default function ExtractorClient({ user, signOutPath }: ExtractorClientPr
       if (!response.ok) {
         throw new Error(data.error || "The search could not be completed.");
       }
-      const currentSearchResults = Array.from(
+      let currentSearchResults = Array.from(
         new Map(data.places.map((place: Place) => [place.id, place])).values(),
       ) as Place[];
+      if (data.source === "openweb" && selectedFields.length > 0) {
+        setMessage(
+          `${currentSearchResults.length} prospects discovered · checking public websites for contacts…`,
+        );
+        currentSearchResults = await requestContactEnrichment(currentSearchResults);
+      }
       setResults(currentSearchResults);
       localStorage.setItem("mapmint-results", JSON.stringify(currentSearchResults));
       const supabase = createSupabaseBrowserClient();
@@ -210,9 +241,16 @@ export default function ExtractorClient({ user, signOutPath }: ExtractorClientPr
         }
       }
       const sourceLabel =
-        data.source === "openstreetmap" ? "OpenStreetMap" : "Google Places";
+        data.source === "openweb"
+          ? "the open web"
+          : data.source === "openstreetmap"
+            ? "OpenStreetMap"
+            : "Google Places";
+      const contactCount = currentSearchResults.filter(
+        (place) => place.phone || place.email,
+      ).length;
       setMessage(
-        `${data.places.length} businesses found from ${sourceLabel} · ${currentSearchResults.length} unique saved`,
+        `${currentSearchResults.length} prospects found from ${sourceLabel} · ${contactCount} with phone or email`,
       );
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Something went wrong.");
@@ -232,7 +270,7 @@ export default function ExtractorClient({ user, signOutPath }: ExtractorClientPr
       "Rating",
       "Review count",
       "Status",
-      "Google Maps URL",
+      "Map or listing URL",
       "Latitude",
       "Longitude",
       "Place ID",
@@ -277,28 +315,7 @@ export default function ExtractorClient({ user, signOutPath }: ExtractorClientPr
     setEnriching(true);
     setMessage("Checking public business websites for contact details…");
     try {
-      const response = await fetch("/api/places/enrich", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          leads: uniqueResults.map(({ id, website, phone, email, contactSource }) => ({
-            id,
-            website,
-            phone,
-            email,
-            contactSource,
-          })),
-        }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Contact enrichment failed.");
-      const additions = new Map(
-        (data.leads as Place[]).map((lead) => [lead.id, lead]),
-      );
-      const enriched = uniqueResults.map((place) => ({
-        ...place,
-        ...additions.get(place.id),
-      }));
+      const enriched = await requestContactEnrichment(uniqueResults);
       setResults(enriched);
       localStorage.setItem("mapmint-results", JSON.stringify(enriched));
       const contactCount = enriched.filter(
@@ -345,11 +362,11 @@ export default function ExtractorClient({ user, signOutPath }: ExtractorClientPr
       </header>
 
       <section className="hero">
-        <div className="eyebrow">A NIVARO INTERNAL TOOL · GOOGLE BUSINESS DATA, MINUS THE BILL</div>
+        <div className="eyebrow">A NIVARO INTERNAL TOOL · OPEN-WEB PROSPECT DATA, MINUS THE BILL</div>
         <h1>Find the businesses.<br /><em>Keep the budget.</em></h1>
         <p>
-          Welcome, {user.displayName}. Build clean local lead lists from open worldwide business data.
-          Duplicate-safe, export-ready, and designed by Nivaro with no paid API requirement.
+          Welcome, {user.displayName}. Discover niche businesses across the public web, then check
+          their websites for callable contact details. Source-linked, duplicate-safe, and export-ready.
         </p>
       </section>
 
@@ -456,8 +473,6 @@ export default function ExtractorClient({ user, signOutPath }: ExtractorClientPr
               >
                 <option value={10}>10 businesses</option>
                 <option value={20}>20 businesses</option>
-                <option value={40}>40 businesses</option>
-                <option value={60}>60 businesses</option>
               </select>
             </label>
           </div>
@@ -605,7 +620,7 @@ export default function ExtractorClient({ user, signOutPath }: ExtractorClientPr
 
       <footer>
         <span className="footer-brand"><span className="nivaro-icon" aria-hidden="true"><img src="/nivaro-logo.png" alt="" /></span> MapMint by Nivaro</span>
-        <span>Business data © OpenStreetMap contributors · ODbL · No paid API</span>
+        <span>Every lead includes its original web source · Contact data comes from public business pages</span>
       </footer>
     </main>
   );

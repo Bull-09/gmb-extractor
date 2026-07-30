@@ -17,6 +17,7 @@ type GooglePlace = {
 };
 
 const SEARCH_URL = "https://places.googleapis.com/v1/places:searchText";
+const BRAVE_SEARCH_URL = "https://api.search.brave.com/res/v1/web/search";
 const NOMINATIM_URL = "https://nominatim.openstreetmap.org/search";
 const OVERPASS_URLS = [
   "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
@@ -36,6 +37,87 @@ type OsmElement = {
   center?: { lat?: number; lon?: number };
   tags?: Record<string, string>;
 };
+
+type BraveResult = {
+  title?: string;
+  url?: string;
+  description?: string;
+  profile?: { long_name?: string };
+};
+
+function cleanSearchTitle(value: string) {
+  return value
+    .replace(/\s+[|–—-]\s+(?:Home|Official Site|Facebook|Instagram|LinkedIn).*$/i, "")
+    .replace(/\s+[|–—-]\s+[^|–—-]{2,40}$/i, "")
+    .trim();
+}
+
+async function searchOpenWeb(keyword: string, location: string, limit: number) {
+  const apiKey = process.env.BRAVE_SEARCH_API_KEY;
+  if (!apiKey) {
+    throw new Error(
+      "Open-web discovery is not connected yet. Add the Brave Search API key to enable prospect searches.",
+    );
+  }
+
+  const found = new Map<string, BraveResult>();
+  let offset = 0;
+  let requestsUsed = 0;
+
+  while (found.size < Math.min(limit, 20) && requestsUsed < 1) {
+    const url = new URL(BRAVE_SEARCH_URL);
+    url.searchParams.set(
+      "q",
+      `${keyword} businesses in ${location} contact phone email website`,
+    );
+    url.searchParams.set("count", String(Math.min(20, limit)));
+    url.searchParams.set("offset", String(offset));
+    url.searchParams.set("safesearch", "moderate");
+    url.searchParams.set("search_lang", "en");
+
+    const response = await fetch(url, {
+      headers: {
+        Accept: "application/json",
+        "Accept-Encoding": "gzip",
+        "X-Subscription-Token": apiKey,
+      },
+      signal: AbortSignal.timeout(15000),
+    });
+    requestsUsed += 1;
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(
+        data?.message || data?.error?.message || "The open-web search provider rejected the request.",
+      );
+    }
+
+    const results = (data?.web?.results || []) as BraveResult[];
+    for (const result of results) {
+      if (result.url?.startsWith("http")) found.set(result.url, result);
+    }
+    if (results.length < 20) break;
+    offset += results.length;
+  }
+
+  const places = Array.from(found.values()).slice(0, limit).map((result) => ({
+    id: `web-${result.url}`,
+    name:
+      result.profile?.long_name ||
+      cleanSearchTitle(result.title || "") ||
+      "Unnamed business",
+    category: keyword,
+    address: location,
+    website: result.url,
+    status: "DISCOVERED",
+    sourceName: "Brave Web Search",
+    sourceUrl: result.url,
+    contactSource: result.url,
+    description: result.description,
+  }));
+
+  return { places, source: "openweb", requestsUsed };
+}
 
 const keywordAliases: Record<string, string[]> = {
   plumber: ["plumber", "plumbing"],
@@ -216,11 +298,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const apiKey = process.env.GOOGLE_PLACES_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json(
-        await searchOpenStreetMap(keyword, location, limit),
-      );
+    const googleApiKey = process.env.GOOGLE_PLACES_API_KEY;
+    if (!googleApiKey) {
+      if (process.env.ENABLE_OSM_FALLBACK === "true") {
+        return NextResponse.json(
+          await searchOpenStreetMap(keyword, location, limit),
+        );
+      }
+      return NextResponse.json(await searchOpenWeb(keyword, location, limit));
     }
 
     const baseFields = [
@@ -252,7 +337,7 @@ export async function POST(request: NextRequest) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "X-Goog-Api-Key": apiKey,
+          "X-Goog-Api-Key": googleApiKey,
           "X-Goog-FieldMask": `${fieldMask},nextPageToken`,
         },
         body: JSON.stringify({
