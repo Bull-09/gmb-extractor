@@ -200,6 +200,8 @@ export default function ExtractorClient({ user, signOutPath }: ExtractorClientPr
   const search = async (event: FormEvent) => {
     event.preventDefault();
     setLoading(true);
+    setResults([]);
+    localStorage.removeItem("mapmint-results");
     setMessage("Searching the open web for matching businesses…");
     try {
       const response = await fetch("/api/places/search", {
@@ -253,6 +255,8 @@ export default function ExtractorClient({ user, signOutPath }: ExtractorClientPr
         `${currentSearchResults.length} prospects found from ${sourceLabel} · ${contactCount} with phone or email`,
       );
     } catch (error) {
+      setResults([]);
+      localStorage.removeItem("mapmint-results");
       setMessage(error instanceof Error ? error.message : "Something went wrong.");
     } finally {
       setLoading(false);
