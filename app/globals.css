@@ -282,11 +282,13 @@ aside { display: grid; gap: 18px; }
 .empty h3 { font-family: Georgia, serif; font-size: 22px; margin: 17px 0 7px; }
 .empty p { color: var(--muted); font-size: 12px; }
 .table-wrap { overflow-x: auto; margin-top: 28px; }
-table { width: 100%; border-collapse: collapse; min-width: 760px; }
+table { width: 100%; border-collapse: collapse; min-width: 930px; }
 th { color: var(--muted); font-size: 9px; text-transform: uppercase; letter-spacing: 1px; text-align: left; padding: 12px; border-bottom: 1px solid var(--line); }
 td { padding: 17px 12px; border-bottom: 1px solid #eaede6; font-size: 12px; vertical-align: top; }
 td b, td span { display: block; }
 td span { color: var(--muted); font-size: 10px; margin-top: 5px; max-width: 370px; }
+td a { color: var(--green); text-decoration: none; font-weight: 800; }
+td a:hover { text-decoration: underline; }
 .rating { color: #ad7100; }
 .status { display: inline-block; color: var(--green); background: #e6efe2; border-radius: 99px; padding: 5px 8px; margin: 0; font-weight: 900; }
 footer { border-top: 1px solid var(--line); padding: 25px max(30px, calc((100vw - 1120px) / 2)); display: flex; align-items: center; justify-content: space-between; color: var(--muted); font-size: 10px; }

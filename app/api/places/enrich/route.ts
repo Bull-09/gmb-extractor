@@ -6,6 +6,7 @@ type Lead = {
   website?: string;
   phone?: string;
   email?: string;
+  contactSource?: string;
 };
 
 function safeWebsite(value?: string) {
@@ -102,6 +103,10 @@ async function enrichLead(lead: Lead) {
       website: website.toString(),
       email: lead.email || contacts.email,
       phone: lead.phone || contacts.phone,
+      contactSource:
+        contacts.email || contacts.phone
+          ? website.toString()
+          : lead.contactSource,
     };
   } catch {
     return { ...lead, website: website.toString() };

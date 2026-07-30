@@ -155,6 +155,8 @@ out center tags ${limit};`;
         website: tags["contact:website"] || tags.website,
         status: "LISTED",
         mapsUrl: `https://www.openstreetmap.org/${element.type}/${element.id}`,
+        sourceName: "OpenStreetMap",
+        sourceUrl: `https://www.openstreetmap.org/${element.type}/${element.id}`,
         latitude,
         longitude,
       };
@@ -263,6 +265,8 @@ export async function POST(request: NextRequest) {
       reviews: place.userRatingCount,
       status: place.businessStatus,
       mapsUrl: place.googleMapsUri,
+      sourceName: "Google Places",
+      sourceUrl: place.googleMapsUri,
       latitude: place.location?.latitude,
       longitude: place.location?.longitude,
     }));

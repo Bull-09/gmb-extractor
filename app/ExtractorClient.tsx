@@ -18,6 +18,9 @@ type Place = {
   mapsUrl?: string;
   latitude?: number;
   longitude?: number;
+  sourceName?: string;
+  sourceUrl?: string;
+  contactSource?: string;
 };
 
 const fieldOptions = [
@@ -233,6 +236,9 @@ export default function ExtractorClient({ user, signOutPath }: ExtractorClientPr
       "Latitude",
       "Longitude",
       "Place ID",
+      "Data source",
+      "Source URL",
+      "Contact source",
     ];
     const rows = uniqueResults.map((place) => [
       place.name,
@@ -248,6 +254,9 @@ export default function ExtractorClient({ user, signOutPath }: ExtractorClientPr
       place.latitude ?? "",
       place.longitude ?? "",
       place.id,
+      place.sourceName || "",
+      place.sourceUrl || "",
+      place.contactSource || "",
     ]);
     const escape = (value: string | number) =>
       `"${String(value).replaceAll('"', '""')}"`;
@@ -272,11 +281,12 @@ export default function ExtractorClient({ user, signOutPath }: ExtractorClientPr
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          leads: uniqueResults.map(({ id, website, phone, email }) => ({
+          leads: uniqueResults.map(({ id, website, phone, email, contactSource }) => ({
             id,
             website,
             phone,
             email,
+            contactSource,
           })),
         }),
       });
@@ -556,7 +566,7 @@ export default function ExtractorClient({ user, signOutPath }: ExtractorClientPr
             <table>
               <thead>
                 <tr>
-                  <th>Business</th><th>Contact</th><th>Rating</th><th>Status</th>
+                  <th>Business</th><th>Contact</th><th>Source</th><th>Rating</th><th>Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -567,6 +577,15 @@ export default function ExtractorClient({ user, signOutPath }: ExtractorClientPr
                       <b>{place.phone || "No phone found"}</b>
                       <span>{place.email || "No email found"}</span>
                       <span>{place.website || "No website listed"}</span>
+                    </td>
+                    <td>
+                      <b>{place.sourceName || "Public web"}</b>
+                      <span>
+                        {place.sourceUrl ? <a href={place.sourceUrl} target="_blank" rel="noreferrer">View original record ↗</a> : "Source link unavailable"}
+                      </span>
+                      {place.contactSource && (
+                        <span><a href={place.contactSource} target="_blank" rel="noreferrer">Contact found here ↗</a></span>
+                      )}
                     </td>
                     <td><b className="rating">★ {place.rating ?? "—"}</b><span>{place.reviews ? `${place.reviews} reviews` : "No count"}</span></td>
                     <td><span className="status">{place.status === "OPERATIONAL" ? "Open" : place.status || "Unknown"}</span></td>
