@@ -19,9 +19,9 @@ type GooglePlace = {
 const SEARCH_URL = "https://places.googleapis.com/v1/places:searchText";
 const NOMINATIM_URL = "https://nominatim.openstreetmap.org/search";
 const OVERPASS_URLS = [
+  "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
   "https://overpass-api.de/api/interpreter",
   "https://overpass.private.coffee/api/interpreter",
-  "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
 ];
 const OSM_HEADERS = {
   "User-Agent": "MapMint-by-Nivaro/1.0 (https://mapmint-by-nivaro.vercel.app)",
@@ -55,6 +55,24 @@ const keywordAliases: Record<string, string[]> = {
   gyms: ["fitness_centre", "gym"],
 };
 
+const keywordTags: Record<string, Array<[string, string]>> = {
+  plumber: [["craft", "plumber"]],
+  plumbers: [["craft", "plumber"]],
+  solar: [["craft", "solar_panel_installer"], ["shop", "energy"]],
+  dentist: [["amenity", "dentist"], ["healthcare", "dentist"]],
+  dentists: [["amenity", "dentist"], ["healthcare", "dentist"]],
+  cafe: [["amenity", "cafe"]],
+  cafes: [["amenity", "cafe"]],
+  restaurant: [["amenity", "restaurant"]],
+  restaurants: [["amenity", "restaurant"]],
+  electrician: [["craft", "electrician"]],
+  electricians: [["craft", "electrician"]],
+  lawyer: [["office", "lawyer"]],
+  lawyers: [["office", "lawyer"]],
+  gym: [["leisure", "fitness_centre"]],
+  gyms: [["leisure", "fitness_centre"]],
+};
+
 function overpassPattern(keyword: string) {
   const normalized = keyword.toLowerCase().trim();
   const terms = keywordAliases[normalized] || [
@@ -84,21 +102,31 @@ async function searchOpenStreetMap(keyword: string, location: string, limit: num
     throw new Error("The selected location was not found in OpenStreetMap.");
   }
 
-  const [south, north, west, east] = box.map(String);
-  const bbox = `${south},${west},${north},${east}`;
+  const [south, north, west, east] = box.map(Number);
+  const latitude = Number(geocoded[0].lat);
+  const longitude = Number(geocoded[0].lon);
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+    throw new Error("The selected location has invalid coordinates.");
+  }
+  const northSouthRadius = Math.abs(north - south) * 55_500;
+  const eastWestRadius =
+    Math.abs(east - west) * 55_500 * Math.cos((latitude * Math.PI) / 180);
+  const radius = Math.round(
+    Math.min(Math.max(Math.max(northSouthRadius, eastWestRadius), 5_000), 12_000),
+  );
+  const searchArea = `(around:${radius},${latitude},${longitude})`;
   const pattern = overpassPattern(keyword);
+  const normalizedKeyword = keyword.toLowerCase().trim();
+  const exactTagQueries = (keywordTags[normalizedKeyword] || [])
+    .map(([key, value]) => `nwr["${key}"="${value}"]${searchArea};`)
+    .join("\n  ");
+  const nameQuery = exactTagQueries
+    ? ""
+    : `nwr["name"~"${pattern}",i]${searchArea};`;
   const query = `[out:json][timeout:25];
 (
-  nwr["name"~"${pattern}",i](${bbox});
-  nwr["brand"~"${pattern}",i](${bbox});
-  nwr["operator"~"${pattern}",i](${bbox});
-  nwr["amenity"~"${pattern}",i](${bbox});
-  nwr["shop"~"${pattern}",i](${bbox});
-  nwr["craft"~"${pattern}",i](${bbox});
-  nwr["office"~"${pattern}",i](${bbox});
-  nwr["healthcare"~"${pattern}",i](${bbox});
-  nwr["tourism"~"${pattern}",i](${bbox});
-  nwr["leisure"~"${pattern}",i](${bbox});
+  ${exactTagQueries}
+  ${nameQuery}
 );
 out center tags ${limit};`;
 
@@ -112,7 +140,7 @@ out center tags ${limit};`;
           "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
         },
         body: new URLSearchParams({ data: query }),
-        signal: AbortSignal.timeout(22000),
+        signal: AbortSignal.timeout(18000),
       });
       if (!response.ok) continue;
       overpassData = await response.json();
